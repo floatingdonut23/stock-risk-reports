@@ -97,7 +97,7 @@ function replaceSourceNote(html) {
 }
 
 function updateHtml(html, quote, report) {
-  const currency = quote.currency || "USD";
+  const currency = quote.currency || quote.meta?.currency || "USD";
   const price = formatMoney(quote.regularMarketPrice, currency, currency === "HKD" ? 2 : 2);
   const change = formatPercent(quote.regularMarketChangePercent);
   const timestamp = formatTimestamp(quote.regularMarketTime, report.timeZone);
@@ -123,26 +123,44 @@ function updateHtml(html, quote, report) {
   return out;
 }
 
-async function fetchQuotes() {
-  const symbols = REPORTS.map((report) => report.symbol).join(",");
-  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}`;
+async function fetchChartQuote(report) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(report.symbol)}?range=5d&interval=1d`;
   const response = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0 stock-risk-report-updater" }
   });
-  if (!response.ok) throw new Error(`Yahoo quote request failed: ${response.status}`);
+  if (!response.ok) throw new Error(`Yahoo chart request failed for ${report.symbol}: ${response.status}`);
   const data = await response.json();
-  const quotes = data?.quoteResponse?.result || [];
-  return new Map(quotes.map((quote) => [quote.symbol, quote]));
+  const result = data?.chart?.result?.[0];
+  if (!result) throw new Error(`No chart data returned for ${report.symbol}`);
+
+  const meta = result.meta || {};
+  const closes = (result.indicators?.quote?.[0]?.close || []).filter((value) => typeof value === "number");
+  const latest = typeof meta.regularMarketPrice === "number" ? meta.regularMarketPrice : closes.at(-1);
+  const previous = typeof meta.chartPreviousClose === "number" ? meta.chartPreviousClose : closes.at(-2);
+  const changePercent = latest && previous ? ((latest - previous) / previous) * 100 : null;
+
+  return {
+    symbol: report.symbol,
+    currency: meta.currency,
+    regularMarketPrice: latest,
+    regularMarketChangePercent: changePercent,
+    regularMarketTime: meta.regularMarketTime,
+    marketCap: null,
+    trailingPE: null,
+    epsTrailingTwelveMonths: null,
+    trailingAnnualDividendYield: null
+  };
 }
 
 async function main() {
-  const quotes = await fetchQuotes();
   let updated = 0;
 
   for (const report of REPORTS) {
-    const quote = quotes.get(report.symbol);
-    if (!quote) {
-      console.warn(`No quote returned for ${report.symbol}`);
+    let quote;
+    try {
+      quote = await fetchChartQuote(report);
+    } catch (error) {
+      console.warn(error.message);
       continue;
     }
 
