@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AMD Stock Risk Score Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Playfair+Display:wght@700;800&display=swap');
+
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --card-2: #f9fafc;
+      --border: #dbe2ea;
+      --deep-navy: #0f172a;
+      --navy: #1e3a5f;
+      --soft-navy: #365b82;
+      --light-navy: #93b4d8;
+      --orange: #f4a261;
+      --soft-orange: #f6b784;
+      --muted-orange: #e9a46d;
+      --orange-tint: #fde6d2;
+      --positive: #2e7d5a;
+      --caution: #d08b36;
+      --negative: #b94a48;
+      --muted: #667085;
+      --shadow-lg: 0 30px 90px rgba(15, 23, 42, 0.12);
+      --shadow-md: 0 18px 48px rgba(15, 23, 42, 0.09);
+      --shadow-sm: 0 10px 26px rgba(15, 23, 42, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(147, 180, 216, 0.24), transparent 34%),
+        linear-gradient(180deg, #ffffff 0%, var(--bg) 28%, var(--bg) 100%);
+      color: var(--deep-navy);
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size:17px;
+      line-height: 1.5;
+    }
+
+    .report {
+      width: min(1480px, calc(100% - 56px));
+      margin: 0 auto;
+      padding: 38px 0 54px;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 34px 0 62px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .page:last-child { border-bottom: 0; }
+
+    h1, h2, h3 {
+      font-family: "Playfair Display", Georgia, serif;
+      color: var(--deep-navy);
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 { font-size: clamp(48px, 5vw, 78px); line-height: 0.98; }
+    h2 { font-size: clamp(34px, 3vw, 52px); line-height: 1.05; }
+    h3 { font-size:29px; line-height: 1.1; }
+    p { margin: 0; color: var(--muted); }
+    a { color: var(--navy); font-weight: 800; text-decoration: none; }
+    .mono { font-family: "JetBrains Mono", ui-monospace, monospace; letter-spacing: 0; }
+
+    .fade {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 700ms ease, transform 700ms ease, box-shadow 220ms ease, border-color 220ms ease;
+    }
+
+    .fade.in-view { opacity: 1; transform: translateY(0); }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--navy);
+      font-size:13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+      margin-bottom: 14px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 48px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--orange), var(--light-navy));
+    }
+
+    .topline {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 34px;
+      align-items: end;
+      margin-bottom: 30px;
+    }
+
+    .subtitle {
+      max-width: 880px;
+      margin-top: 20px;
+      color: var(--soft-navy);
+      font-size:21px;
+      font-weight: 500;
+    }
+
+    .snapshot {
+      min-width: 360px;
+      padding: 22px 24px;
+      border: 1px solid rgba(219, 226, 234, 0.9);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(14px);
+    }
+
+    .snapshot span {
+      display: block;
+      color: var(--muted);
+      font-size:14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .snapshot strong {
+      display: block;
+      margin-top: 6px;
+      color: var(--deep-navy);
+      font-size:23px;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+    }
+
+    .stock-strip {
+      display: grid;
+      grid-template-columns: auto 1fr repeat(4, auto);
+      align-items: center;
+      gap: 26px;
+      margin-bottom: 26px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(249,250,252,0.92)), var(--card);
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stock-strip::after {
+      content: "";
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--orange), var(--light-navy), transparent);
+      opacity: 0.85;
+    }
+
+    .logo {
+      width: 78px;
+      height: 78px;
+      border-radius: 22px;
+      background: linear-gradient(145deg, var(--navy), var(--deep-navy));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 16px 30px rgba(30,58,95,0.22);
+      padding: 8px;
+    }
+
+    .ticker {
+      font-size:37px;
+      line-height: 1;
+      font-weight: 900;
+      color: var(--deep-navy);
+    }
+
+    .company {
+      margin-top: 7px;
+      font-size:20px;
+      font-weight: 600;
+      color: var(--soft-navy);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size:12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    .metric-value {
+      margin-top: 6px;
+      color: var(--deep-navy);
+      font-size:24px;
+      font-weight: 900;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      white-space: nowrap;
+    }
+
+    .positive { color: var(--positive); }
+    .negative { color: var(--negative); }
+    .caution-text { color: var(--caution); }
+
+    .grid { display: grid; gap: 26px; }
+    .hero-grid { grid-template-columns: minmax(500px, 1.08fr) minmax(430px, 0.92fr); margin-bottom: 26px; }
+    .three-grid { grid-template-columns: repeat(3, 1fr); margin-bottom: 26px; }
+    .six-grid { grid-template-columns: repeat(3, 1fr); margin-bottom: 26px; }
+    .dual-grid { grid-template-columns: 1fr 1fr; margin-bottom: 26px; }
+    .recap-grid { grid-template-columns: 1.05fr 0.95fr; margin-bottom: 26px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow-md);
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card.secondary { background: var(--card-2); }
+    .card:hover { box-shadow: var(--shadow-lg); border-color: rgba(244, 162, 97, 0.55); }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .card-title { font-size:30px; }
+    .small-note {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size:15px;
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size:12px;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .beat { color: #215f45; background: rgba(46, 125, 90, 0.13); border-color: rgba(46, 125, 90, 0.25); }
+    .miss { color: #873331; background: rgba(185, 74, 72, 0.13); border-color: rgba(185, 74, 72, 0.25); }
+    .warn { color: #8b5a20; background: rgba(208, 139, 54, 0.15); border-color: rgba(208, 139, 54, 0.28); }
+
+    .gauge-card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.86), rgba(249,250,252,0.75)), radial-gradient(circle at 70% 6%, rgba(244,162,97,0.20), transparent 32%);
+      backdrop-filter: blur(14px);
+    }
+
+    .gauge-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: min(100%, 440px);
+      max-width: 440px;
+      aspect-ratio: 440 / 300;
+      margin: 4px auto 22px;
+      overflow: visible;
+    }
+
+    .gauge-wrap svg {
+      filter: drop-shadow(0 18px 30px rgba(15,23,42,0.13));
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+    #needle {
+      transform-origin: 220px 214px;
+      transform: rotate(-90deg);
+      transition: transform 1.45s cubic-bezier(.19, .96, .2, 1);
+    }
+
+    .gauge-ready #needle { transform: rotate(-12.6deg); }
+
+    .score-display {
+      position: absolute;
+      top: 70.5%;
+      left: 0;
+      right: 0;
+      text-align: center;
+      z-index: 2;
+      pointer-events: none;
+      transform: translateY(-50%);
+    }
+
+    .score-display .score {
+      font-size:77px;
+      line-height: 0.95;
+      font-weight: 900;
+      color: var(--deep-navy);
+      text-shadow: 0 12px 26px rgba(15,23,42,0.12);
+      display: inline-block;
+      min-width: 140px;
+      padding: 4px 10px 0;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(8px);
+    }
+
+    .score-label {
+      margin-top: 8px;
+      color: var(--soft-navy);
+      font-size:13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .explainer {
+      padding: 22px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(30,58,95,0.94), rgba(15,23,42,0.96));
+      border: 1px solid rgba(244, 162, 97, 0.55);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+
+    .explainer h3 {
+      font-size:23px;
+      color: white;
+      margin-bottom: 8px;
+    }
+
+    .explainer p { color: rgba(255,255,255,0.78); font-size:16px; }
+    .pe-box {
+      background: linear-gradient(135deg, rgba(147,180,216,0.18), rgba(253,230,210,0.55));
+      border: 1px solid rgba(147,180,216,0.45);
+    }
+
+    .pe-box h3 {
+      color: var(--deep-navy);
+      padding-left: 18px;
+      border-left: 4px solid var(--orange);
+      margin-bottom: 14px;
+    }
+
+    .pe-box p { color: var(--soft-navy); font-size:17px; font-weight: 600; }
+    .composition { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--border); }
+
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 18px;
+      margin-bottom: 26px;
+    }
+
+    .kpi {
+      padding: 24px;
+      border-radius: 22px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+    }
+
+    .kpi:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: rgba(244, 162, 97, 0.55);
+    }
+
+    .kpi .metric-value { font-size:28px; }
+    .trend { display: inline-block; margin-top: 12px; color: var(--soft-navy); font-size:13px; font-weight: 800; }
+
+    .chart-card { margin-bottom: 26px; }
+    .price-chart { width: 100%; min-height: 410px; }
+    .price-chart text {
+      fill: var(--muted);
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size:13px;
+      font-weight: 800;
+    }
+    .axis, .gridline { stroke: var(--border); stroke-width: 1; }
+    .gridline { opacity: 0.86; }
+    .price-line {
+      fill: none;
+      stroke: var(--navy);
+      stroke-width: 4.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 1800;
+      stroke-dashoffset: 1800;
+      transition: stroke-dashoffset 1.5s ease;
+      filter: drop-shadow(0 12px 16px rgba(30,58,95,0.18));
+    }
+    .in-view .price-line { stroke-dashoffset: 0; }
+    .area { fill: url(#areaFill); }
+    .event-dot { fill: var(--orange); stroke: white; stroke-width: 4; }
+    .event-stem { stroke: var(--muted-orange); stroke-width: 1.4; stroke-dasharray: 5 5; }
+
+    .analysis-card {
+      min-height: 218px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .analysis-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 24px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(244,162,97,0), rgba(244,162,97,0.44), rgba(147,180,216,0.18));
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 220ms ease;
+      pointer-events: none;
+    }
+
+    .analysis-card:hover::before { opacity: 1; }
+    .analysis-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+    .analysis-label {
+      color: var(--soft-navy);
+      font-size:13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .analysis-value {
+      margin-top: 8px;
+      color: var(--deep-navy);
+      font-size:37px;
+      font-weight: 900;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+    }
+    .benchmark { color: var(--navy); font-size:16px; font-weight: 800; }
+    .analysis-card p { color: var(--muted); font-size:16px; font-weight: 600; }
+
+    .score-bars { display: grid; gap: 20px; }
+    .score-row {
+      display: grid;
+      grid-template-columns: 210px 1fr 300px;
+      align-items: center;
+      gap: 20px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--card-2);
+    }
+    .score-name { color: var(--deep-navy); font-size:18px; font-weight: 900; }
+    .bar-track {
+      height: 18px;
+      border-radius: 999px;
+      background: #e8eef5;
+      overflow: hidden;
+      border: 1px solid rgba(219,226,234,0.9);
+    }
+    .bar-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--navy), var(--soft-navy) 54%, var(--orange));
+      transition: width 1.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .bar-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+      transform: translateX(-100%);
+      animation: sheen 2.8s ease-in-out infinite;
+    }
+    .score-row.in-view .bar-fill { width: var(--w); }
+    .score-meta { color: var(--soft-navy); font-size:14px; font-weight: 800; }
+    @keyframes sheen {
+      0%, 35% { transform: translateX(-100%); }
+      70%, 100% { transform: translateX(100%); }
+    }
+
+    .page-title-row {
+      display: grid;
+      grid-template-columns: 1fr minmax(320px, 540px);
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      background: var(--card);
+      box-shadow: var(--shadow-md);
+      margin-bottom: 26px;
+      max-height: 520px;
+    }
+    table { width: 100%; min-width: 1040px; border-collapse: collapse; }
+    th, td { padding: 19px 22px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: linear-gradient(180deg, #ffffff, #f9fafc);
+      color: var(--soft-navy);
+      font-size:12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    tbody tr:nth-child(even) td { background: rgba(147, 180, 216, 0.08); }
+    td { color: var(--deep-navy); font-size:16px; font-weight: 700; }
+    tr:last-child td { border-bottom: 0; }
+
+    .recap-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .recap-item {
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(249, 250, 252, 0.88);
+    }
+    .recap-key {
+      color: var(--soft-navy);
+      font-size:13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .recap-val { color: var(--deep-navy); font-size:16px; font-weight: 700; }
+
+    .column-card { min-height: 410px; }
+    .column-card.catalysts {
+      background: linear-gradient(135deg, var(--deep-navy), var(--navy));
+      border-color: rgba(147,180,216,0.32);
+    }
+    .column-card.catalysts h2, .column-card.catalysts li { color: white; }
+    .column-card.catalysts li { color: rgba(255,255,255,0.82); }
+    .column-card.risks {
+      background: linear-gradient(135deg, #fffaf6, var(--card));
+      border-color: rgba(244,162,97,0.45);
+    }
+    .clean-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 16px;
+    }
+    .clean-list li {
+      position: relative;
+      padding-left: 26px;
+      color: var(--soft-navy);
+      font-size:17px;
+      font-weight: 700;
+    }
+    .clean-list li::before {
+      content: "";
+      position: absolute;
+      top: 11px;
+      left: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--orange);
+      box-shadow: 0 0 0 5px rgba(244,162,97,0.16);
+    }
+
+    .rating-card {
+      background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(30,58,95,0.96)), var(--deep-navy);
+      color: white;
+    }
+    .rating-card h2 { color: white; }
+    .rating-card p { color: rgba(255,255,255,0.76); }
+    .rating-layout {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      gap: 34px;
+      align-items: center;
+    }
+    .rating-bar {
+      position: relative;
+      height: 32px;
+      margin: 34px 0 16px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2e7d5a, #86a75a 28%, #d08b36 55%, #d96a4e 76%, #b94a48);
+      box-shadow: inset 0 2px 10px rgba(15,23,42,0.28);
+    }
+    .rating-marker {
+      position: absolute;
+      top: 50%;
+      left: 43%;
+      width: 28px;
+      height: 58px;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 5px solid var(--orange);
+      box-shadow: 0 18px 35px rgba(0,0,0,0.28);
+    }
+    .rating-labels {
+      display: flex;
+      justify-content: space-between;
+      color: rgba(255,255,255,0.72);
+      font-size:12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .verdict {
+      display: inline-flex;
+      margin-bottom: 18px;
+      color: #5b351b;
+      background: var(--orange-tint);
+      border-color: rgba(244,162,97,0.46);
+      font-size:14px;
+    }
+    .rating-summary { font-size:21px; font-weight: 600; }
+    .footer { padding: 26px 2px 0; color: var(--muted); font-size:13px; font-weight: 600; }
+
+    @media (max-width: 1180px) {
+      .topline, .page-title-row, .rating-layout { grid-template-columns: 1fr; }
+      .stock-strip { grid-template-columns: auto 1fr 1fr; }
+      .hero-grid, .recap-grid, .dual-grid { grid-template-columns: 1fr; }
+      .kpi-strip, .three-grid, .six-grid { grid-template-columns: repeat(2, 1fr); }
+      .score-row { grid-template-columns: 1fr; }
+      .snapshot { min-width: 0; }
+    }
+
+    @media (max-width: 720px) {
+      body { font-size:15px; }
+      .report { width: min(100% - 28px, 1480px); padding-top: 18px; }
+      .page { padding: 24px 0 42px; }
+      .stock-strip, .kpi-strip, .three-grid, .six-grid, .recap-list { grid-template-columns: 1fr; }
+      .card { padding: 22px; border-radius: 20px; }
+      .logo { width: 70px; height: 70px; }
+      h1 { font-size:41px; }
+      h2 { font-size:32px; }
+      .subtitle, .rating-summary { font-size:18px; }
+      .gauge-wrap { width: min(100%, 420px); aspect-ratio: 440 / 300; margin-bottom: 18px; }
+      .score-display { top: 70.5%; }
+      .score-display .score { font-size:61px; }
+      .price-chart { min-height: 330px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="report">
+    <section class="page">
+      <div class="topline fade">
+        <div>
+          <div class="eyebrow">Stock Risk Score Report</div>
+          <h1>Advanced Micro Devices</h1>
+          <p class="subtitle">A two-page executive dashboard assessing AMD through valuation, financial strength, growth quality, earnings execution, AI catalyst durability, and current market momentum.</p>
+        </div>
+        <div class="snapshot">
+          <span>Market data snapshot</span>
+          <strong>May 6, 2026 close</strong>
+          <p>Latest sourced public market quote used in this report.</p>
+        </div>
+      </div>
+
+      <div class="stock-strip fade">
+        <svg class="logo" viewBox="0 0 84 84" role="img" aria-label="AMD logo">
+          <rect x="4" y="4" width="76" height="76" rx="18" fill="url(#logoGrad)"></rect>
+          <path d="M18 52 L18 31 L39 31 L39 38 L27 38 L27 45 L39 45 L39 52 Z" fill="#ffffff"></path>
+          <path d="M43 31 H66 V54 H59 V42 L48 53 H40 L55 38 H43 Z" fill="#f4a261"></path>
+          <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="84" y2="84"><stop stop-color="#365b82"></stop><stop offset="1" stop-color="#0f172a"></stop></linearGradient></defs>
+        </svg>
+        <div>
+          <div class="ticker mono">AMD</div>
+          <div class="company">Advanced Micro Devices, Inc. | Nasdaq | Semiconductors and AI infrastructure</div>
+        </div>
+        <div><div class="metric-label">Current price</div><div class="metric-value">$421.39</div></div>
+        <div><div class="metric-label">Daily change</div><div class="metric-value positive">+18.62%</div></div>
+        <div><div class="metric-label">Currency</div><div class="metric-value">USD</div></div>
+        <div><div class="metric-label">Last updated</div><div class="metric-value" style="font-size:16px;">May 6, 2026</div></div>
+      </div>
+
+      <div class="grid hero-grid">
+        <section class="card gauge-card fade">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Animated Risk Gauge</h2>
+              <p class="small-note">Composite risk score from 0 to 100. Lower is better.</p>
+            </div>
+            <span class="badge warn">MODERATE RISK</span>
+          </div>
+          <div class="gauge-wrap">
+            <svg width="440" height="300" viewBox="0 0 440 300" aria-label="Risk gauge">
+              <defs>
+                <linearGradient id="gaugeGrad" x1="55" y1="214" x2="385" y2="214">
+                  <stop stop-color="#93b4d8"></stop>
+                  <stop offset="0.5" stop-color="#1e3a5f"></stop>
+                  <stop offset="1" stop-color="#0f172a"></stop>
+                </linearGradient>
+                <filter id="arcShadow" x="-10%" y="-30%" width="120%" height="160%">
+                  <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#0f172a" flood-opacity="0.18"></feDropShadow>
+                </filter>
+              </defs>
+              <path d="M64 214 A156 156 0 0 1 376 214" fill="none" stroke="#e7edf4" stroke-width="28" stroke-linecap="round"></path>
+              <path d="M64 214 A156 156 0 0 1 376 214" fill="none" stroke="url(#gaugeGrad)" stroke-width="24" stroke-linecap="round" filter="url(#arcShadow)"></path>
+              <path d="M166.6 67.4 A156 156 0 0 1 294.8 77.1" fill="none" stroke="#f4a261" stroke-width="24" stroke-linecap="round" opacity="0.96"></path>
+              <path d="M173.4 86.2 A136 136 0 0 1 285.2 94.8" fill="none" stroke="#f6b784" stroke-width="5" stroke-linecap="round" opacity="0.75"></path>
+              <g id="needle">
+                <line x1="220" y1="214" x2="220" y2="94" stroke="#0f172a" stroke-width="7" stroke-linecap="round"></line>
+                <line x1="220" y1="214" x2="220" y2="108" stroke="#f4a261" stroke-width="3" stroke-linecap="round"></line>
+                <circle cx="220" cy="214" r="18" fill="#0f172a" stroke="#ffffff" stroke-width="7"></circle>
+              </g>
+              <text x="55" y="272">Low Risk</text>
+              <text x="174" y="34">Moderate Risk</text>
+              <text x="305" y="272">High Risk</text>
+              <text x="57" y="190" class="mono">0</text>
+              <text x="356" y="190" class="mono">100</text>
+            </svg>
+            <div class="score-display"><div class="score mono" data-count="43">0</div><div class="score-label">Risk score</div></div>
+          </div>
+          <div class="explainer">
+            <h3>What this risk score means</h3>
+            <p>The score blends valuation, balance-sheet quality, cash generation, growth durability, volatility, and event risk. AMD screens as moderate risk: the business is profitable, liquid, and growing quickly, but the share price embeds significant AI execution expectations after a sharp rally.</p>
+          </div>
+        </section>
+
+        <section class="card fade">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">P/E Ratio Brief</h2>
+              <p class="small-note">Simple professional interpretation for non-specialist readers.</p>
+            </div>
+          </div>
+          <div class="card pe-box" style="box-shadow:none;">
+            <h3>Price compared with earnings</h3>
+            <p>P/E shows how much investors pay for each dollar of profit. AMD's trailing P/E is high because the market is paying ahead for AI accelerator, EPYC server CPU, and data-center growth. The forward P/E is lower, which means analysts expect earnings to rise materially.</p>
+          </div>
+          <div class="composition">
+            <canvas id="riskDonut" height="220" aria-label="Risk score composition"></canvas>
+          </div>
+        </section>
+      </div>
+
+      <div class="kpi-strip">
+        <div class="kpi fade"><div class="metric-label">Market Cap</div><div class="metric-value">$679.0B</div><span class="trend positive">Mega-cap AI semis</span></div>
+        <div class="kpi fade"><div class="metric-label">P/E Ratio</div><div class="metric-value">159.0x</div><span class="trend caution-text">Forward P/E 45.3x</span></div>
+        <div class="kpi fade"><div class="metric-label">Revenue</div><div class="metric-value">$34.64B</div><span class="trend positive">TTM +34.3%</span></div>
+        <div class="kpi fade"><div class="metric-label">EPS</div><div class="metric-value">$2.65</div><span class="trend positive">FY25 GAAP EPS</span></div>
+        <div class="kpi fade"><div class="metric-label">Dividend Yield</div><div class="metric-value">0.0%</div><span class="trend">No dividend</span></div>
+      </div>
+
+      <section class="card chart-card fade">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">12-Month Price Chart</h2>
+            <p class="small-note">Monthly close path using public historical data and key event annotations through the May 6, 2026 close.</p>
+          </div>
+          <span class="badge warn">HIGH MOMENTUM</span>
+        </div>
+        <svg class="price-chart" viewBox="0 0 1200 430" role="img" aria-label="AMD 12-month price chart">
+          <defs>
+            <linearGradient id="areaFill" x1="0" y1="50" x2="0" y2="330">
+              <stop stop-color="#93b4d8" stop-opacity="0.32"></stop>
+              <stop offset="1" stop-color="#93b4d8" stop-opacity="0.03"></stop>
+            </linearGradient>
+          </defs>
+          <line class="axis" x1="86" y1="328" x2="1140" y2="328"></line>
+          <line class="axis" x1="86" y1="50" x2="86" y2="328"></line>
+          <line class="gridline" x1="86" y1="260" x2="1140" y2="260"></line>
+          <line class="gridline" x1="86" y1="192" x2="1140" y2="192"></line>
+          <line class="gridline" x1="86" y1="124" x2="1140" y2="124"></line>
+          <line class="gridline" x1="86" y1="56" x2="1140" y2="56"></line>
+          <text x="28" y="332">$80</text><text x="20" y="264">$170</text><text x="20" y="196">$260</text><text x="20" y="128">$350</text><text x="20" y="60">$440</text>
+          <polygon class="area" points="86,312 174,288 262,241 350,250 438,253 526,179 614,180 702,203 790,189 878,217 966,214 1054,122 1140,62 1140,328 86,328"></polygon>
+          <polyline class="price-line" points="86,312 174,288 262,241 350,250 438,253 526,179 614,180 702,203 790,189 878,217 966,214 1054,122 1140,62"></polyline>
+          <g>
+            <line class="event-stem" x1="86" y1="312" x2="86" y2="226"></line><circle class="event-dot" cx="86" cy="312" r="8"></circle><text x="96" y="218">Regulatory: MI308 export controls</text>
+            <line class="event-stem" x1="174" y1="288" x2="174" y2="198"></line><circle class="event-dot" cx="174" cy="288" r="8"></circle><text x="188" y="190">Product: MI350 at Advancing AI</text>
+            <line class="event-stem" x1="526" y1="179" x2="526" y2="88"></line><circle class="event-dot" cx="526" cy="179" r="8"></circle><text x="452" y="80">Macro/customer: OpenAI 6 GW deal</text>
+            <line class="event-stem" x1="702" y1="203" x2="702" y2="116"></line><circle class="event-dot" cx="702" cy="203" r="8"></circle><text x="650" y="108">Earnings: Q4 2025 beat</text>
+            <line class="event-stem" x1="1140" y1="62" x2="1140" y2="142"></line><circle class="event-dot" cx="1140" cy="62" r="8"></circle><text x="990" y="154">Earnings: Q1 2026 beat and guide-up</text>
+          </g>
+          <text x="72" y="390">May 2025</text><text x="254" y="390">Jul</text><text x="430" y="390">Sep</text><text x="604" y="390">Nov</text><text x="782" y="390">Jan</text><text x="956" y="390">Mar</text><text x="1078" y="390">May 2026</text>
+        </svg>
+      </section>
+
+      <div class="grid three-grid">
+        <section class="card analysis-card fade">
+          <div class="analysis-top"><div><div class="analysis-label">P/E</div><div class="analysis-value">159x</div></div><span class="badge miss">MISS</span></div>
+          <div class="benchmark">Benchmark: sector leaders often require strong growth to support premium multiples.</div>
+          <p>AMD is profitable, but the trailing multiple is rich after the post-earnings rally.</p>
+        </section>
+        <section class="card analysis-card fade">
+          <div class="analysis-top"><div><div class="analysis-label">P/S</div><div class="analysis-value">19.6x</div></div><span class="badge warn">CAUTION</span></div>
+          <div class="benchmark">Comparison: StockAnalysis listed 14.23x before the latest price surge.</div>
+          <p>Sales growth is strong, but valuation now assumes a large data-center AI ramp.</p>
+        </section>
+        <section class="card analysis-card fade">
+          <div class="analysis-top"><div><div class="analysis-label">PEG</div><div class="analysis-value">1.06x</div></div><span class="badge beat">BEAT</span></div>
+          <div class="benchmark">Benchmark: near 1.0x can be reasonable if growth is delivered.</div>
+          <p>Expected earnings growth helps offset the headline P/E risk.</p>
+        </section>
+      </div>
+
+      <div class="grid six-grid">
+        <section class="card analysis-card fade">
+          <div class="analysis-top"><div><div class="analysis-label">Revenue Growth</div><div class="analysis-value positive">+38%</div></div><span class="badge beat">BEAT</span></div>
+          <div class="benchmark">Comparison: Q1 2026 revenue growth year over year.</div>
+          <p>Data Center became the primary growth driver as AI infrastructure demand accelerated.</p>
+        </section>
+        <section class="card analysis-card fade">
+          <div class="analysis-top"><div><div class="analysis-label">Operating Margin</div><div class="analysis-value positive">25%</div></div><span class="badge beat">BEAT</span></div>
+          <div class="benchmark">Comparison: Q1 non-GAAP operating margin.</div>
+          <p>Operating leverage is improving as high-performance compute revenue scales.</p>
+        </section>
+        <section class="card analysis-card fade">
+          <div class="analysis-top"><div><div class="analysis-label">Free Cash Flow</div><div class="analysis-value positive">$6.74B</div></div><span class="badge beat">BEAT</span></div>
+          <div class="benchmark">Comparison: TTM free cash flow.</div>
+          <p>Cash generation is strong enough to support R&D, supply commitments, and buybacks.</p>
+        </section>
+        <section class="card analysis-card fade">
+          <div class="analysis-top"><div><div class="analysis-label">Debt to Equity</div><div class="analysis-value positive">0.06x</div></div><span class="badge beat">BEAT</span></div>
+          <div class="benchmark">Benchmark: below 1.0x is typically conservative.</div>
+          <p>Low leverage and net cash reduce balance-sheet risk.</p>
+        </section>
+        <section class="card analysis-card fade">
+          <div class="analysis-top"><div><div class="analysis-label">ROE</div><div class="analysis-value caution-text">7.08%</div></div><span class="badge warn">CAUTION</span></div>
+          <div class="benchmark">Benchmark: higher quality compounders often exceed 15%.</div>
+          <p>Returns are improving, but still modest relative to premium valuation.</p>
+        </section>
+        <section class="card analysis-card fade">
+          <div class="analysis-top"><div><div class="analysis-label">EPS Growth</div><div class="analysis-value positive">+43%</div></div><span class="badge beat">BEAT</span></div>
+          <div class="benchmark">Comparison: Q1 non-GAAP EPS growth year over year.</div>
+          <p>EPS growth supports the bull case, provided AI demand and supply execution continue.</p>
+        </section>
+      </div>
+
+      <section class="card fade">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Score Breakdown Bars</h2>
+            <p class="small-note">Weighted contribution to the 43/100 total risk score.</p>
+          </div>
+        </div>
+        <div class="score-bars">
+          <div class="score-row fade" style="--w:68%"><div class="score-name">Valuation</div><div class="bar-track"><div class="bar-fill"></div></div><div class="score-meta mono">Score 68 | Weight 35% | Contribution 23.8</div></div>
+          <div class="score-row fade" style="--w:20%"><div class="score-name">Financial Health</div><div class="bar-track"><div class="bar-fill"></div></div><div class="score-meta mono">Score 20 | Weight 35% | Contribution 7.0</div></div>
+          <div class="score-row fade" style="--w:41%"><div class="score-name">Growth</div><div class="bar-track"><div class="bar-fill"></div></div><div class="score-meta mono">Score 41 | Weight 30% | Contribution 12.3</div></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="page">
+      <div class="page-title-row fade">
+        <div>
+          <div class="eyebrow">Detailed Stock Risk Analysis</div>
+          <h2>Quarterly Performance and Investment Readout</h2>
+        </div>
+        <p>Latest reported quarters show repeated revenue beats, with Q2 2025 EPS affected by U.S. export-control charges related to MI308 products.</p>
+      </div>
+
+      <div class="table-wrap fade">
+        <table>
+          <thead>
+            <tr>
+              <th>Quarter</th><th>Revenue</th><th>Revenue estimate</th><th>Revenue beat/miss</th><th>EPS</th><th>EPS estimate</th><th>EPS beat/miss</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">Q1 2026</td><td class="mono">$10.25B</td><td class="mono">$9.90B</td><td><span class="badge beat">BEAT +$353M</span></td><td class="mono">$1.37</td><td class="mono">$1.29</td><td><span class="badge beat">BEAT +$0.08</span></td></tr>
+            <tr><td class="mono">Q4 2025</td><td class="mono">$10.27B</td><td class="mono">$9.65B</td><td><span class="badge beat">BEAT +$621M</span></td><td class="mono">$1.53</td><td class="mono">$1.32</td><td><span class="badge beat">BEAT +$0.21</span></td></tr>
+            <tr><td class="mono">Q3 2025</td><td class="mono">$9.25B</td><td class="mono">$8.76B</td><td><span class="badge beat">BEAT +$490M</span></td><td class="mono">$1.20</td><td class="mono">$1.17</td><td><span class="badge beat">BEAT +$0.03</span></td></tr>
+            <tr><td class="mono">Q2 2025</td><td class="mono">$7.69B</td><td class="mono">$7.41B</td><td><span class="badge beat">BEAT +$270M</span></td><td class="mono">$0.48</td><td class="mono">$0.54</td><td><span class="badge miss">MISS -$0.06</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid recap-grid">
+        <section class="card fade">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Latest Earnings Recap</h2>
+              <p class="small-note">First quarter 2026 results released May 5, 2026.</p>
+            </div>
+          </div>
+          <div class="recap-list">
+            <div class="recap-item"><div class="recap-key">Revenue result</div><div class="recap-val">Q1 revenue was $10.25B, up 38% year over year and above consensus of about $9.90B.</div></div>
+            <div class="recap-item"><div class="recap-key">EPS result</div><div class="recap-val">Non-GAAP EPS was $1.37, ahead of the $1.29 consensus and up 43% year over year.</div></div>
+            <div class="recap-item"><div class="recap-key">Margin performance</div><div class="recap-val">Non-GAAP gross margin was 55%; operating margin was about 25%, with guidance for 56% gross margin in Q2.</div></div>
+            <div class="recap-item"><div class="recap-key">Guidance</div><div class="recap-val">Q2 revenue guidance of about $11.2B was ahead of analyst expectations near $10.5B.</div></div>
+            <div class="recap-item"><div class="recap-key">Management commentary</div><div class="recap-val">Management highlighted AI infrastructure demand, EPYC server CPUs, Instinct accelerators, and agentic AI workloads.</div></div>
+            <div class="recap-item"><div class="recap-key">Market reaction</div><div class="recap-val">Shares rose 18.62% on May 6, closing at $421.39 and setting a 52-week high near $430.60 intraday.</div></div>
+          </div>
+        </section>
+
+        <section class="card secondary fade">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Quarterly Revenue Trend</h2>
+              <p class="small-note">Latest four reported quarters in billions of USD.</p>
+            </div>
+          </div>
+          <canvas id="quarterChart" height="320"></canvas>
+        </section>
+      </div>
+
+      <div class="grid dual-grid">
+        <section class="card column-card catalysts fade">
+          <div class="card-header"><h2 class="card-title">Catalysts</h2></div>
+          <ul class="clean-list">
+            <li>Accelerating Data Center demand driven by EPYC server CPUs and Instinct AI accelerators.</li>
+            <li>OpenAI and hyperscaler demand may strengthen AMD's credibility as the leading alternative AI compute supplier.</li>
+            <li>MI350, MI450, Helios, and ROCm roadmap progress can expand AMD's addressable AI infrastructure market.</li>
+            <li>Q2 2026 revenue guidance above consensus suggests near-term growth visibility.</li>
+            <li>Low leverage, net cash, and strong free cash flow provide strategic flexibility.</li>
+            <li>Analyst upgrades and price-target increases may keep institutional attention on the stock.</li>
+          </ul>
+        </section>
+        <section class="card column-card risks fade">
+          <div class="card-header"><h2 class="card-title">Risks</h2></div>
+          <ul class="clean-list">
+            <li>Trailing valuation is demanding after a rapid share-price rally and could compress on slower AI growth.</li>
+            <li>AI accelerator competition remains intense, especially versus NVIDIA's ecosystem scale.</li>
+            <li>Export controls and China-related restrictions can affect product mix, inventory charges, and revenue timing.</li>
+            <li>Gaming and semi-custom revenue may decline as the current console cycle matures.</li>
+            <li>Large AI customer agreements may involve warrants, dilution, supply risk, or concentration risk.</li>
+            <li>Memory, packaging, power, and advanced manufacturing constraints could pressure margins or delivery schedules.</li>
+          </ul>
+        </section>
+      </div>
+
+      <section class="card rating-card fade">
+        <div class="rating-layout">
+          <div>
+            <h2 class="card-title">Bottom Line Rating</h2>
+            <div class="rating-bar"><div class="rating-marker"></div></div>
+            <div class="rating-labels"><span>Lower risk</span><span>Higher risk</span></div>
+          </div>
+          <div>
+            <span class="badge verdict">MODERATE RISK | POSITIVE FUNDAMENTALS</span>
+            <p class="rating-summary">AMD is financially stronger and more mature than a speculative AI hardware story: revenue is growing, earnings are expanding, the balance sheet is conservative, and free cash flow is meaningful. The key risk is price discipline. At the current valuation, investors need AMD's AI accelerator roadmap and server CPU share gains to keep compounding quickly enough to justify the premium.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer fade">
+        Sources referenced: FinanceCharts AMD quote, price history, market cap, dividend yield, P/E and 12-month return data; StockAnalysis AMD overview, statistics, valuation, ratios, free cash flow, debt/equity and ROE; AMD investor relations Q1 2026, Q4 2025, Q3 2025 and Q2 2025 earnings releases; MarketBeat quarterly earnings estimate and beat/miss history; Barron's, MarketWatch, Investors Business Daily and StockStory coverage of AMD's May 2026 earnings reaction. Data points reflect publicly available sources used during report build and may differ from live market feeds.
+        Links: <a href="https://www.financecharts.com/stocks/AMD/summary/price" target="_blank">FinanceCharts price history</a>, <a href="https://stockanalysis.com/stocks/amd/" target="_blank">StockAnalysis AMD</a>, <a href="https://stockanalysis.com/stocks/amd/financials/ratios/" target="_blank">StockAnalysis ratios</a>, <a href="https://www.marketbeat.com/earnings/reports/2026-5-5-advanced-micro-devices-inc-stock/" target="_blank">MarketBeat Q1 2026</a>, <a href="https://ir.amd.com/news-events/press-releases/detail/1286/amd-reports-first-quarter-2026-financial-results" target="_blank">AMD Q1 2026 release</a>.
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          if (entry.target.classList.contains('gauge-card')) {
+            entry.target.classList.add('gauge-ready');
+            animateScore();
+          }
+        }
+      });
+    }, { threshold: 0.16 });
+
+    document.querySelectorAll('.fade, .score-row').forEach((el) => observer.observe(el));
+
+    let scoreAnimated = false;
+    function animateScore() {
+      if (scoreAnimated) return;
+      scoreAnimated = true;
+      const score = document.querySelector('.score[data-count]');
+      const target = Number(score.dataset.count);
+      const start = performance.now();
+      const duration = 1150;
+      function tick(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        score.textContent = Math.round(target * eased);
+        if (progress < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    const chartFont = { family: 'DM Sans', size: 14, weight: 700 };
+
+    new Chart(document.getElementById('riskDonut'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Valuation', 'Financial Health', 'Growth'],
+        datasets: [{
+          data: [23.8, 7.0, 12.3],
+          backgroundColor: ['#1e3a5f', '#365b82', '#f4a261'],
+          borderColor: '#ffffff',
+          borderWidth: 5,
+          hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 1200, easing: 'easeOutQuart' },
+        cutout: '66%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#365b82', font: chartFont, padding: 18 } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toFixed(1)} risk points` } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('quarterChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026'],
+        datasets: [{
+          label: 'Revenue (US$B)',
+          data: [7.69, 9.25, 10.27, 10.25],
+          backgroundColor: ['#93b4d8', '#365b82', '#1e3a5f', '#f4a261'],
+          borderRadius: 14,
+          maxBarThickness: 72
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: { duration: 1300, easing: 'easeOutQuart' },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: '#dbe2ea' },
+            ticks: { color: '#667085', font: { family: 'JetBrains Mono', size: 13, weight: 700 } }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#365b82', font: chartFont }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => `$${ctx.parsed.y.toFixed(2)}B revenue` } }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
