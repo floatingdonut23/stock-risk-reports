@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Risk Reports</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&family=Playfair+Display:wght@700;800&display=swap');
+
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --card-2: #f9fafc;
+      --border: #dbe2ea;
+      --deep-navy: #0f172a;
+      --navy: #1e3a5f;
+      --soft-navy: #365b82;
+      --light-navy: #93b4d8;
+      --orange: #f4a261;
+      --orange-tint: #fde6d2;
+      --muted: #667085;
+      --shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
+      --shadow-sm: 0 14px 36px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(147, 180, 216, 0.24), transparent 34%),
+        linear-gradient(180deg, #ffffff 0%, var(--bg) 34%, var(--bg) 100%);
+      color: var(--deep-navy);
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size: 18px;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 44px));
+      margin: 0 auto;
+      padding: 72px 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr minmax(280px, 380px);
+      gap: 36px;
+      align-items: end;
+      margin-bottom: 34px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--navy);
+      font-size: 14px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+      margin-bottom: 16px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 48px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--orange), var(--light-navy));
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 780px;
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: clamp(46px, 5vw, 78px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 20px 0 0;
+      max-width: 780px;
+      color: var(--soft-navy);
+      font-size: 22px;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    .note {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: var(--shadow-sm);
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .note strong {
+      display: block;
+      color: var(--deep-navy);
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .reports {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .report-card {
+      display: block;
+      min-height: 260px;
+      padding: 30px;
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.96), rgba(249,250,252,0.92)),
+        var(--card);
+      box-shadow: var(--shadow-sm);
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      overflow: hidden;
+      transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+    }
+
+    .report-card::after {
+      content: "";
+      position: absolute;
+      left: 30px;
+      right: 30px;
+      bottom: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--orange), var(--light-navy), transparent);
+      opacity: 0.9;
+    }
+
+    .report-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow);
+      border-color: rgba(244, 162, 97, 0.58);
+    }
+
+    .ticker {
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--deep-navy);
+      margin-bottom: 10px;
+    }
+
+    .company {
+      color: var(--soft-navy);
+      font-size: 23px;
+      font-weight: 800;
+      margin-bottom: 24px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 9px 13px;
+      background: var(--orange-tint);
+      color: #6f401e;
+      border: 1px solid rgba(244, 162, 97, 0.38);
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .description {
+      color: var(--muted);
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    footer {
+      margin-top: 36px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    @media (max-width: 860px) {
+      main { width: min(100% - 28px, 1180px); padding: 42px 0; }
+      .hero, .reports { grid-template-columns: 1fr; }
+      .subtitle { font-size: 19px; }
+      .report-card { min-height: 220px; padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Public Report Library</div>
+        <h1>Stock Risk Score Reports</h1>
+        <p class="subtitle">A clean index for ticker-specific risk dashboards. Each report opens as its own page with market data, valuation analysis, earnings trends, catalysts, risks, and a bottom-line investor readout.</p>
+      </div>
+      <div class="note">
+        <strong>Publishing structure</strong>
+        Upload this whole folder to one GitHub Pages repository. Each ticker folder contains its own `index.html`, which creates simple public links.
+      </div>
+    </section>
+
+    <section class="reports" aria-label="Available reports">
+      <a class="report-card" href="./amd/">
+        <div class="ticker">AMD</div>
+        <div class="company">Advanced Micro Devices</div>
+        <p class="description">Executive stock risk score report for AMD, focused on AI infrastructure growth, valuation, earnings execution, and balance-sheet quality.</p>
+        <div class="meta">
+          <span class="pill">Moderate risk</span>
+          <span class="pill">Semiconductors</span>
+        </div>
+      </a>
+
+      <a class="report-card" href="./shaz/">
+        <div class="ticker">SHAZ</div>
+        <div class="company">SharonAI Holdings</div>
+        <p class="description">Executive stock risk score report for SHAZ, focused on early-stage AI infrastructure execution, volatility, financing risk, and growth catalysts.</p>
+        <div class="meta">
+          <span class="pill">High risk</span>
+          <span class="pill">AI infrastructure</span>
+        </div>
+      </a>
+    </section>
+
+    <footer>
+      Reports are prepared from publicly available data sources and are for informational purposes only. Market data can change quickly; refresh the report data before making investment decisions.
+    </footer>
+  </main>
+</body>
+</html>
