@@ -1,0 +1,38 @@
+name: Update stock report market data
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Runs Monday-Friday at 22:30 UTC, after the regular US market close.
+    - cron: "30 22 * * 1-5"
+
+permissions:
+  contents: write
+
+jobs:
+  update-market-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Refresh quote fields
+        run: node scripts/update-live-market-data.js
+
+      - name: Commit refreshed reports
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --cached --quiet; then
+            echo "No report changes to commit."
+          else
+            git commit -m "Auto-update stock report market data"
+            git push
+          fi
