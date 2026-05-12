@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Stock Risk Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Playfair+Display:wght@700;800&display=swap');
+    :root{--bg:#f5f7fb;--card:#fff;--card2:#f9fafc;--border:#dbe2ea;--deep:#0f172a;--navy:#1e3a5f;--soft:#365b82;--light:#93b4d8;--orange:#f4a261;--tint:#fde6d2;--pos:#2e7d5a;--cau:#d08b36;--neg:#b94a48;--muted:#667085;--shadow:0 26px 70px rgba(15,23,42,.11);--shadow2:0 14px 38px rgba(15,23,42,.08)}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,rgba(147,180,216,.24),transparent 34%),linear-gradient(180deg,#fff 0%,var(--bg) 30%,var(--bg) 100%);color:var(--deep);font-family:"DM Sans",system-ui,sans-serif;font-size:17px;line-height:1.5}.wrap{width:min(1480px,calc(100% - 56px));margin:0 auto;padding:38px 0 54px}h1,h2,h3{font-family:"Playfair Display",Georgia,serif;margin:0;color:var(--deep)}h1{font-size:clamp(44px,5vw,76px);line-height:.98}h2{font-size:clamp(32px,3vw,50px);line-height:1.05}h3{font-size:27px}.mono{font-family:"JetBrains Mono",ui-monospace,monospace}.eyebrow{display:inline-flex;gap:12px;align-items:center;color:var(--navy);font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.11em;margin-bottom:14px}.eyebrow:before{content:"";width:48px;height:2px;background:linear-gradient(90deg,var(--orange),var(--light))}.topline{display:grid;grid-template-columns:1fr minmax(320px,480px);gap:34px;align-items:end;margin-bottom:30px}.subtitle{max-width:880px;margin-top:20px;color:var(--soft);font-size:21px;font-weight:500}.card,.kpi,.stock-strip,.table-wrap{border:1px solid var(--border);background:rgba(255,255,255,.9);box-shadow:var(--shadow2);border-radius:24px}.control-card{padding:24px}.control-card label{display:block;color:var(--soft);font-weight:900;text-transform:uppercase;letter-spacing:.08em;font-size:12px;margin-bottom:10px}.search-row{display:flex;gap:12px}.search-row input{flex:1;border:1px solid var(--border);border-radius:16px;padding:15px 16px;font:700 18px "JetBrains Mono";color:var(--deep)}.search-row button{border:0;border-radius:16px;padding:15px 20px;background:linear-gradient(135deg,var(--navy),var(--deep));color:#fff;font-weight:900;cursor:pointer}.status{margin-top:14px;color:var(--muted);font-size:14px;font-weight:700}.status.error{color:var(--neg)}.stock-strip{display:grid;grid-template-columns:auto 1fr repeat(4,auto);gap:24px;align-items:center;margin-bottom:26px;padding:24px;box-shadow:var(--shadow);position:relative;overflow:hidden}.stock-strip:after{content:"";position:absolute;left:24px;right:24px;bottom:0;height:3px;background:linear-gradient(90deg,transparent,var(--orange),var(--light),transparent)}.logo{width:78px;height:78px;border-radius:22px;background:linear-gradient(145deg,var(--navy),var(--deep));display:grid;place-items:center;color:#fff;font-size:27px;font-weight:900}.ticker{font-size:37px;font-weight:900}.company{margin-top:7px;font-size:20px;font-weight:600;color:var(--soft)}.metric-label{color:var(--muted);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.metric-value{margin-top:6px;font:900 24px "JetBrains Mono";color:var(--deep);white-space:nowrap}.positive{color:var(--pos)}.negative{color:var(--neg)}.grid{display:grid;gap:26px}.hero-grid{grid-template-columns:minmax(500px,1.08fr) minmax(430px,.92fr);margin-bottom:26px}.three-grid{grid-template-columns:repeat(3,1fr);margin-bottom:26px}.six-grid{grid-template-columns:repeat(3,1fr);margin-bottom:26px}.card{padding:30px;overflow:hidden}.card-header{display:flex;justify-content:space-between;gap:18px;margin-bottom:24px}.small-note{margin-top:8px;font-size:15px;color:var(--muted);font-weight:600}.badge{display:inline-flex;border-radius:999px;padding:9px 14px;font:900 11px "JetBrains Mono";letter-spacing:.06em;white-space:nowrap}.beat{color:#215f45;background:rgba(46,125,90,.13);border:1px solid rgba(46,125,90,.25)}.miss{color:#873331;background:rgba(185,74,72,.13);border:1px solid rgba(185,74,72,.25)}.warn{color:#8b5a20;background:rgba(208,139,54,.15);border:1px solid rgba(208,139,54,.28)}.gauge-card{background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(249,250,252,.78)),radial-gradient(circle at 70% 6%,rgba(244,162,97,.2),transparent 32%)}.gauge-wrap{position:relative;display:grid;place-items:center;width:min(100%,440px);max-width:440px;aspect-ratio:440/300;margin:4px auto 22px;overflow:visible}.gauge-wrap svg{width:100%;height:auto;overflow:visible;filter:drop-shadow(0 18px 30px rgba(15,23,42,.13))}#needle{transform-origin:220px 214px;transform:rotate(-90deg);transition:transform 1.1s cubic-bezier(.19,.96,.2,1)}.score-display{position:absolute;top:70.5%;left:0;right:0;text-align:center;transform:translateY(-50%);pointer-events:none}.score{font-size:75px;line-height:.95;font-weight:900;display:inline-block;min-width:140px;padding:4px 10px 0;border-radius:18px;background:rgba(255,255,255,.74);backdrop-filter:blur(8px)}.score-label{margin-top:8px;color:var(--soft);font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}.explainer{padding:22px;border-radius:20px;background:linear-gradient(135deg,rgba(30,58,95,.94),rgba(15,23,42,.96));border:1px solid rgba(244,162,97,.55)}.explainer h3{color:#fff;font-size:23px;margin-bottom:8px}.explainer p{color:rgba(255,255,255,.78);font-size:16px}.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-bottom:26px}.kpi{padding:24px}.kpi .metric-value{font-size:28px}.analysis-card{min-height:200px;display:flex;flex-direction:column;gap:14px}.analysis-top{display:flex;justify-content:space-between;gap:16px}.analysis-label{color:var(--soft);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.analysis-value{margin-top:8px;font:900 34px "JetBrains Mono";color:var(--deep)}.analysis-card p{color:var(--muted);font-size:16px;font-weight:600}.chart-panel{margin-bottom:26px}.table-wrap{overflow:auto;margin-bottom:26px}table{width:100%;min-width:900px;border-collapse:collapse}th,td{padding:17px 20px;border-bottom:1px solid var(--border);text-align:left}th{position:sticky;top:0;background:linear-gradient(180deg,#fff,#f9fafc);color:var(--soft);font-size:12px;text-transform:uppercase;letter-spacing:.08em}td{font-size:16px;font-weight:700}.rating-card{background:linear-gradient(135deg,rgba(15,23,42,.98),rgba(30,58,95,.96));color:#fff}.rating-card h2{color:#fff}.rating-card p{color:rgba(255,255,255,.76)}.footer{padding:26px 2px 0;color:var(--muted);font-size:13px;font-weight:600}.fade{opacity:0;transform:translateY(16px);transition:opacity .65s ease,transform .65s ease}.fade.in-view{opacity:1;transform:translateY(0)}@media(max-width:1180px){.topline,.hero-grid{grid-template-columns:1fr}.stock-strip{grid-template-columns:auto 1fr 1fr}.kpi-strip,.three-grid,.six-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:720px){body{font-size:15px}.wrap{width:min(100% - 28px,1480px);padding-top:18px}.stock-strip,.kpi-strip,.three-grid,.six-grid{grid-template-columns:1fr}.card{padding:22px}.subtitle{font-size:18px}h1{font-size:41px}h2{font-size:32px}.search-row{flex-direction:column}.score{font-size:61px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="topline fade">
+      <div>
+        <div class="eyebrow">Live Stock Risk Dashboard</div>
+        <h1>Enter Any Ticker</h1>
+        <p class="subtitle">This page fetches live market data through a serverless proxy, updates KPI cards, redraws the 12-month Chart.js price chart, and recalculates the risk score after every ticker search.</p>
+      </div>
+      <form class="card control-card" id="tickerForm">
+        <label for="tickerInput">Ticker</label>
+        <div class="search-row">
+          <input id="tickerInput" value="AMD" autocomplete="off" />
+          <button type="submit">Load</button>
+        </div>
+        <div class="status" id="status">Ready. Try AMD, META, GOOG, TSLA, RDDT, NTNX or 0992.HK.</div>
+      </form>
+    </section>
+
+    <section class="stock-strip fade">
+      <div class="logo mono" id="logo">AMD</div>
+      <div><div class="ticker mono" id="ticker">AMD</div><div class="company" id="company">Waiting for live data</div></div>
+      <div><div class="metric-label">Current price</div><div class="metric-value" id="price">--</div></div>
+      <div><div class="metric-label">Daily change</div><div class="metric-value" id="change">--</div></div>
+      <div><div class="metric-label">Currency</div><div class="metric-value" id="currency">--</div></div>
+      <div><div class="metric-label">Updated</div><div class="metric-value" id="updated" style="font-size:17px">--</div></div>
+    </section>
+
+    <div class="grid hero-grid">
+      <section class="card gauge-card fade">
+        <div class="card-header"><div><h2>Risk Gauge</h2><p class="small-note">Recalculated after every live data fetch.</p></div><span class="badge warn" id="verdict">LOADING</span></div>
+        <div class="gauge-wrap">
+          <svg viewBox="0 0 440 300"><defs><linearGradient id="gaugeGrad" x1="55" y1="214" x2="385" y2="214"><stop stop-color="#93b4d8"/><stop offset=".5" stop-color="#1e3a5f"/><stop offset="1" stop-color="#0f172a"/></linearGradient></defs><path d="M64 214 A156 156 0 0 1 376 214" fill="none" stroke="#e7edf4" stroke-width="28" stroke-linecap="round"/><path d="M64 214 A156 156 0 0 1 376 214" fill="none" stroke="url(#gaugeGrad)" stroke-width="24" stroke-linecap="round"/><path d="M166.6 67.4 A156 156 0 0 1 294.8 77.1" fill="none" stroke="#f4a261" stroke-width="24" stroke-linecap="round"/><g id="needle"><line x1="220" y1="214" x2="220" y2="94" stroke="#0f172a" stroke-width="7" stroke-linecap="round"/><line x1="220" y1="214" x2="220" y2="108" stroke="#f4a261" stroke-width="3" stroke-linecap="round"/><circle cx="220" cy="214" r="18" fill="#0f172a" stroke="#fff" stroke-width="7"/></g><text x="55" y="272">Low Risk</text><text x="174" y="34">Moderate Risk</text><text x="305" y="272">High Risk</text><text x="57" y="190" class="mono">0</text><text x="356" y="190" class="mono">100</text></svg>
+          <div class="score-display"><div class="score mono" id="riskScore">--</div><div class="score-label">Risk score</div></div>
+        </div>
+        <div class="explainer"><h3>What this risk score means</h3><p id="riskExplainer">Load a ticker to calculate risk from valuation, leverage, profitability, volatility and recent price momentum.</p></div>
+      </section>
+      <section class="card fade">
+        <div class="card-header"><div><h2>12-Month Price</h2><p class="small-note">Chart.js redraws whenever a new ticker loads.</p></div></div>
+        <canvas id="priceChart" height="300"></canvas>
+      </section>
+    </div>
+
+    <section class="kpi-strip">
+      <div class="kpi fade"><div class="metric-label">Market Cap</div><div class="metric-value" id="marketCap">--</div></div>
+      <div class="kpi fade"><div class="metric-label">P/E Ratio</div><div class="metric-value" id="pe">--</div></div>
+      <div class="kpi fade"><div class="metric-label">EPS</div><div class="metric-value" id="eps">--</div></div>
+      <div class="kpi fade"><div class="metric-label">Dividend Yield</div><div class="metric-value" id="dividendYield">--</div></div>
+      <div class="kpi fade"><div class="metric-label">Volume</div><div class="metric-value" id="volume">--</div></div>
+    </section>
+
+    <div class="grid three-grid">
+      <section class="card analysis-card fade"><div class="analysis-top"><div><div class="analysis-label">P/S</div><div class="analysis-value" id="ps">--</div></div><span class="badge warn" id="psBadge">CAUTION</span></div><p id="psText">Loads from live ratios where available.</p></section>
+      <section class="card analysis-card fade"><div class="analysis-top"><div><div class="analysis-label">PEG</div><div class="analysis-value" id="peg">--</div></div><span class="badge warn" id="pegBadge">CAUTION</span></div><p id="pegText">Loads from live ratios where available.</p></section>
+      <section class="card analysis-card fade"><div class="analysis-top"><div><div class="analysis-label">ROE</div><div class="analysis-value" id="roe">--</div></div><span class="badge warn" id="roeBadge">CAUTION</span></div><p id="roeText">Profitability quality signal.</p></section>
+    </div>
+
+    <div class="grid three-grid">
+      <section class="card analysis-card fade"><div class="analysis-top"><div><div class="analysis-label">Debt / Equity</div><div class="analysis-value" id="debtEquity">--</div></div><span class="badge warn" id="debtBadge">CAUTION</span></div><p>Lower leverage reduces balance-sheet risk.</p></section>
+      <section class="card analysis-card fade"><div class="analysis-top"><div><div class="analysis-label">Operating Margin</div><div class="analysis-value" id="opMargin">--</div></div><span class="badge warn" id="marginBadge">CAUTION</span></div><p>Higher operating margin usually lowers business risk.</p></section>
+      <section class="card analysis-card fade"><div class="analysis-top"><div><div class="analysis-label">FCF Yield</div><div class="analysis-value" id="fcfYield">--</div></div><span class="badge warn" id="fcfBadge">CAUTION</span></div><p>Cash generation supports resilience and reinvestment.</p></section>
+    </div>
+
+    <section class="table-wrap fade">
+      <table>
+        <thead><tr><th>Period</th><th>Date</th><th>Revenue</th><th>EPS</th><th>Gross Margin</th><th>Operating Margin</th><th>Net Income</th></tr></thead>
+        <tbody id="quarterRows"></tbody>
+      </table>
+    </section>
+
+    <section class="card rating-card fade">
+      <div class="card-header"><div><h2>Bottom Line</h2><p class="small-note">Live architecture status and investor-friendly readout.</p></div></div>
+      <p id="bottomLine">Enter a ticker to load live data.</p>
+    </section>
+
+    <footer class="footer">
+      API provider: Financial Modeling Prep via Netlify Function proxy. To deploy safely, set FMP_API_KEY in Netlify environment variables. Do not place API keys in browser JavaScript. Test live data by opening /.netlify/functions/stock?ticker=AMD on your deployed Netlify site.
+    </footer>
+  </main>
+
+  <script>
+    // Live data architecture:
+    // - Browser calls a serverless proxy, not the market API directly.
+    // - For Netlify deploys, API_BASE can stay "/.netlify/functions".
+    // - For GitHub Pages front-end + Netlify function back-end, set this to:
+    //   window.LIVE_API_BASE = "https://YOUR-NETLIFY-SITE.netlify.app/.netlify/functions";
+    window.LIVE_API_BASE = window.LIVE_API_BASE || "/.netlify/functions";
+
+    const $ = (id) => document.getElementById(id);
+    let priceChart;
+
+    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (entry.isIntersecting) entry.target.classList.add("in-view");
+    }), { threshold: 0.16 });
+    document.querySelectorAll(".fade").forEach((el) => observer.observe(el));
+
+    function fmtMoney(value, currency = "USD", compact = false) {
+      if (typeof value !== "number" || Number.isNaN(value)) return "Not available";
+      const prefix = currency === "HKD" ? "HK$" : currency === "USD" ? "$" : `${currency} `;
+      if (compact && Math.abs(value) >= 1e12) return `${prefix}${(value / 1e12).toFixed(2)}T`;
+      if (compact && Math.abs(value) >= 1e9) return `${prefix}${(value / 1e9).toFixed(2)}B`;
+      if (compact && Math.abs(value) >= 1e6) return `${prefix}${(value / 1e6).toFixed(2)}M`;
+      return `${prefix}${value.toFixed(2)}`;
+    }
+
+    function fmtNum(value, suffix = "", digits = 2) {
+      if (typeof value !== "number" || Number.isNaN(value)) return "Not available";
+      return `${value.toFixed(digits)}${suffix}`;
+    }
+
+    function fmtPct(value) {
+      if (typeof value !== "number" || Number.isNaN(value)) return "Not available";
+      const sign = value > 0 ? "+" : "";
+      return `${sign}${value.toFixed(2)}%`;
+    }
+
+    function classify(value, good, caution) {
+      if (value === null || value === undefined || Number.isNaN(value)) return ["warn", "CAUTION"];
+      if (good(value)) return ["beat", "BEAT"];
+      if (caution(value)) return ["warn", "CAUTION"];
+      return ["miss", "MISS"];
+    }
+
+    function setBadge(id, cls, text) {
+      const el = $(id);
+      el.className = `badge ${cls}`;
+      el.textContent = text;
+    }
+
+    function riskScore(data) {
+      const q = data.quote, r = data.ratios;
+      let score = 25;
+      if (q.pe) score += Math.min(25, q.pe / 4);
+      if (r.priceToSalesRatioTTM) score += Math.min(16, r.priceToSalesRatioTTM * 1.5);
+      if (r.debtEquityRatioTTM) score += Math.min(16, r.debtEquityRatioTTM * 8);
+      if (r.operatingProfitMarginTTM !== null && r.operatingProfitMarginTTM < 0.08) score += 12;
+      if (r.returnOnEquityTTM !== null && r.returnOnEquityTTM < 0.08) score += 8;
+      const history = data.history || [];
+      if (history.length > 2) {
+        const first = history[0].close;
+        const last = history[history.length - 1].close;
+        const momentum = ((last - first) / first) * 100;
+        if (Math.abs(momentum) > 80) score += 10;
+      }
+      return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    function updateChart(history) {
+      const labels = history.map((row) => row.date);
+      const values = history.map((row) => row.close);
+      if (priceChart) priceChart.destroy();
+      priceChart = new Chart($("priceChart"), {
+        type: "line",
+        data: { labels, datasets: [{ label: "Close", data: values, borderColor: "#1e3a5f", backgroundColor: "rgba(147,180,216,.24)", fill: true, pointRadius: 0, tension: 0.25, borderWidth: 3 }] },
+        options: { responsive: true, animation: { duration: 900, easing: "easeOutQuart" }, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxTicksLimit: 8, color: "#667085" }, grid: { display: false } }, y: { ticks: { color: "#667085" }, grid: { color: "#dbe2ea" } } } }
+      });
+    }
+
+    function updateQuarters(rows, currency) {
+      $("quarterRows").innerHTML = rows.map((row) => `
+        <tr>
+          <td>${row.period}</td>
+          <td>${row.date}</td>
+          <td>${fmtMoney(row.revenue, currency, true)}</td>
+          <td>${fmtNum(row.eps, "", 2)}</td>
+          <td>${fmtPct(row.grossProfitRatio !== null ? row.grossProfitRatio * 100 : null)}</td>
+          <td>${fmtPct(row.operatingIncomeRatio !== null ? row.operatingIncomeRatio * 100 : null)}</td>
+          <td>${fmtMoney(row.netIncome, currency, true)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function render(data) {
+      const q = data.quote, r = data.ratios, m = data.metrics, currency = data.currency || "USD";
+      $("logo").textContent = data.symbol.slice(0, 4);
+      $("ticker").textContent = data.symbol;
+      $("company").textContent = `${data.companyName} | ${data.exchange} | ${data.profile.sector}`;
+      $("price").textContent = fmtMoney(q.price, currency);
+      $("change").textContent = fmtPct(q.changesPercentage);
+      $("change").className = `metric-value ${q.changesPercentage >= 0 ? "positive" : "negative"}`;
+      $("currency").textContent = currency;
+      $("updated").textContent = new Date(data.timestamp).toLocaleString();
+      $("marketCap").textContent = fmtMoney(q.marketCap, currency, true);
+      $("pe").textContent = fmtNum(q.pe, "x", 2);
+      $("eps").textContent = fmtMoney(q.eps, currency);
+      $("dividendYield").textContent = fmtPct(data.profile.dividendYield);
+      $("volume").textContent = q.volume ? q.volume.toLocaleString() : "Not available";
+      $("ps").textContent = fmtNum(r.priceToSalesRatioTTM, "x", 2);
+      $("peg").textContent = fmtNum(r.pegRatioTTM, "x", 2);
+      $("roe").textContent = fmtPct(r.returnOnEquityTTM !== null ? r.returnOnEquityTTM * 100 : null);
+      $("debtEquity").textContent = fmtNum(r.debtEquityRatioTTM, "x", 2);
+      $("opMargin").textContent = fmtPct(r.operatingProfitMarginTTM !== null ? r.operatingProfitMarginTTM * 100 : null);
+      $("fcfYield").textContent = fmtPct(m.freeCashFlowYieldTTM !== null ? m.freeCashFlowYieldTTM * 100 : null);
+
+      const [psCls, psText] = classify(r.priceToSalesRatioTTM, (v) => v < 4, (v) => v < 10); setBadge("psBadge", psCls, psText);
+      const [pegCls, pegText] = classify(r.pegRatioTTM, (v) => v > 0 && v < 1.5, (v) => v < 2.5); setBadge("pegBadge", pegCls, pegText);
+      const [roeCls, roeText] = classify(r.returnOnEquityTTM, (v) => v > 0.15, (v) => v > 0.06); setBadge("roeBadge", roeCls, roeText);
+      const [debtCls, debtText] = classify(r.debtEquityRatioTTM, (v) => v < 0.6, (v) => v < 1.5); setBadge("debtBadge", debtCls, debtText);
+      const [marginCls, marginText] = classify(r.operatingProfitMarginTTM, (v) => v > 0.2, (v) => v > 0.08); setBadge("marginBadge", marginCls, marginText);
+      const [fcfCls, fcfText] = classify(m.freeCashFlowYieldTTM, (v) => v > 0.04, (v) => v > 0.01); setBadge("fcfBadge", fcfCls, fcfText);
+
+      const score = riskScore(data);
+      $("riskScore").textContent = score;
+      $("needle").style.transform = `rotate(${-90 + score * 1.8}deg)`;
+      const verdict = score < 35 ? ["beat", "LOW RISK"] : score < 60 ? ["warn", "MODERATE RISK"] : ["miss", "HIGH RISK"];
+      setBadge("verdict", verdict[0], verdict[1]);
+      $("riskExplainer").textContent = `${data.symbol} risk score recalculated from live valuation, balance-sheet, profitability, free-cash-flow and 12-month price data.`;
+      $("bottomLine").textContent = `${data.companyName} currently screens as ${verdict[1].toLowerCase()}. The live model updates the score whenever the ticker changes; confirm fundamentals and earnings context before making investment decisions.`;
+      updateChart(data.history || []);
+      updateQuarters(data.quarters || [], currency);
+    }
+
+    async function loadTicker(ticker) {
+      $("status").className = "status";
+      $("status").textContent = `Loading ${ticker.toUpperCase()}...`;
+      try {
+        const res = await fetch(`${window.LIVE_API_BASE}/stock?ticker=${encodeURIComponent(ticker)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.detail || `Request failed with ${res.status}`);
+        console.info("Live stock data loaded", data);
+        render(data);
+        $("status").textContent = `Loaded ${data.symbol} from ${data.provider}.`;
+      } catch (error) {
+        console.error("Live data failed", error);
+        $("status").className = "status error";
+        $("status").textContent = `Live data failed: ${error.message}`;
+      }
+    }
+
+    $("tickerForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      loadTicker($("tickerInput").value);
+    });
+
+    loadTicker($("tickerInput").value);
+  </script>
+</body>
+</html>

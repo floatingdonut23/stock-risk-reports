@@ -33,7 +33,7 @@
         linear-gradient(180deg, #ffffff 0%, var(--bg) 34%, var(--bg) 100%);
       color: var(--deep-navy);
       font-family: "DM Sans", system-ui, sans-serif;
-      font-size: 18px;
+      font-size:17px;
     }
 
     main {
@@ -55,7 +55,7 @@
       align-items: center;
       gap: 12px;
       color: var(--navy);
-      font-size: 14px;
+      font-size:13px;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.11em;
@@ -82,7 +82,7 @@
       margin: 20px 0 0;
       max-width: 780px;
       color: var(--soft-navy);
-      font-size: 22px;
+      font-size:21px;
       line-height: 1.5;
       font-weight: 500;
     }
@@ -101,7 +101,7 @@
       display: block;
       color: var(--deep-navy);
       font-family: "JetBrains Mono", ui-monospace, monospace;
-      font-size: 18px;
+      font-size:17px;
       margin-bottom: 8px;
     }
 
@@ -147,7 +147,7 @@
 
     .ticker {
       font-family: "JetBrains Mono", ui-monospace, monospace;
-      font-size: 42px;
+      font-size:41px;
       font-weight: 800;
       color: var(--deep-navy);
       margin-bottom: 10px;
@@ -155,7 +155,7 @@
 
     .company {
       color: var(--soft-navy);
-      font-size: 23px;
+      font-size:22px;
       font-weight: 800;
       margin-bottom: 24px;
     }
@@ -174,7 +174,7 @@
       color: #6f401e;
       border: 1px solid rgba(244, 162, 97, 0.38);
       font-family: "JetBrains Mono", ui-monospace, monospace;
-      font-size: 13px;
+      font-size:12px;
       font-weight: 800;
     }
 
@@ -187,7 +187,7 @@
     footer {
       margin-top: 36px;
       color: var(--muted);
-      font-size: 14px;
+      font-size:13px;
       line-height: 1.5;
       font-weight: 600;
     }
@@ -195,7 +195,7 @@
     @media (max-width: 860px) {
       main { width: min(100% - 28px, 1180px); padding: 42px 0; }
       .hero, .reports { grid-template-columns: 1fr; }
-      .subtitle { font-size: 19px; }
+      .subtitle { font-size:18px; }
       .report-card { min-height: 220px; padding: 24px; }
     }
   </style>
@@ -215,6 +215,16 @@
     </section>
 
     <section class="reports" aria-label="Available reports">
+      <a class="report-card" href="./live/">
+        <div class="ticker">LIVE</div>
+        <div class="company">Ticker Input Dashboard</div>
+        <p class="description">Live stock risk dashboard with ticker search, serverless API proxy, KPI updates, Chart.js redraws, risk-score recalculation, and clear error handling.</p>
+        <div class="meta">
+          <span class="pill">Live architecture</span>
+          <span class="pill">Netlify proxy</span>
+        </div>
+      </a>
+
       <a class="report-card" href="./amd/">
         <div class="ticker">AMD</div>
         <div class="company">Advanced Micro Devices</div>
