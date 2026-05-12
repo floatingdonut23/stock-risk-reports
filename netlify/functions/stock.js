@@ -6,7 +6,9 @@
 // Test after deployment:
 //   https://YOUR-NETLIFY-SITE.netlify.app/.netlify/functions/stock?ticker=AMD
 
-const FMP_BASE = "https://financialmodelingprep.com/api/v3";
+// FMP changed new/free accounts from legacy `/api/v3/...` endpoints to `/stable/...`.
+// If you see "Legacy Endpoint" errors, this file must use the stable base URL below.
+const FMP_BASE = "https://financialmodelingprep.com/stable";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,7 +50,7 @@ function toNumber(value) {
 }
 
 function normalizeHistory(payload) {
-  const rows = payload?.historical || [];
+  const rows = Array.isArray(payload) ? payload : payload?.historical || [];
   return rows
     .slice(0, 252)
     .reverse()
@@ -91,12 +93,12 @@ exports.handler = async (event) => {
 
   try {
     const [quoteRaw, profileRaw, ratiosRaw, metricsRaw, incomeRaw, historyRaw] = await Promise.all([
-      fmp(`/quote/${ticker}`, apiKey),
-      fmp(`/profile/${ticker}`, apiKey),
-      fmp(`/ratios-ttm/${ticker}`, apiKey),
-      fmp(`/key-metrics-ttm/${ticker}`, apiKey),
-      fmp(`/income-statement/${ticker}?period=quarter&limit=4`, apiKey),
-      fmp(`/historical-price-full/${ticker}?timeseries=365`, apiKey)
+      fmp(`/quote?symbol=${encodeURIComponent(ticker)}`, apiKey),
+      fmp(`/profile?symbol=${encodeURIComponent(ticker)}`, apiKey),
+      fmp(`/ratios-ttm?symbol=${encodeURIComponent(ticker)}`, apiKey),
+      fmp(`/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}`, apiKey),
+      fmp(`/income-statement?symbol=${encodeURIComponent(ticker)}&period=quarter&limit=4`, apiKey),
+      fmp(`/historical-price-eod/full?symbol=${encodeURIComponent(ticker)}`, apiKey)
     ]);
 
     const quote = first(quoteRaw) || {};
