@@ -69,10 +69,43 @@ function normalizeQuarters(payload) {
     date: row.date || "Not available",
     revenue: toNumber(row.revenue),
     eps: toNumber(row.eps),
-    grossProfitRatio: toNumber(row.grossProfitRatio),
-    operatingIncomeRatio: toNumber(row.operatingIncomeRatio),
+    grossProfit: toNumber(row.grossProfit),
+    operatingIncome: toNumber(row.operatingIncome),
+    grossProfitRatio: toNumber(row.grossProfitRatio) ?? ratio(toNumber(row.grossProfit), toNumber(row.revenue)),
+    operatingIncomeRatio: toNumber(row.operatingIncomeRatio) ?? ratio(toNumber(row.operatingIncome), toNumber(row.revenue)),
     netIncome: toNumber(row.netIncome)
   }));
+}
+
+function sumNumbers(rows, key) {
+  const values = rows.map((row) => row[key]).filter((value) => typeof value === "number");
+  if (!values.length) return null;
+  return values.reduce((total, value) => total + value, 0);
+}
+
+function averageNumbers(rows, key) {
+  const values = rows.map((row) => row[key]).filter((value) => typeof value === "number");
+  if (!values.length) return null;
+  return values.reduce((total, value) => total + value, 0) / values.length;
+}
+
+function ratio(numerator, denominator) {
+  if (typeof numerator !== "number" || typeof denominator !== "number" || denominator === 0) return null;
+  return numerator / denominator;
+}
+
+function growthPercent(newValue, oldValue) {
+  if (typeof newValue !== "number" || typeof oldValue !== "number" || oldValue === 0) return null;
+  return ((newValue - oldValue) / Math.abs(oldValue)) * 100;
+}
+
+async function optionalFmp(path, apiKey, fallback) {
+  try {
+    return await fmp(path, apiKey);
+  } catch (error) {
+    console.warn(`Optional FMP request failed for ${path}: ${error.message}`);
+    return fallback;
+  }
 }
 
 exports.handler = async (event) => {
@@ -92,13 +125,14 @@ exports.handler = async (event) => {
   }
 
   try {
-    const [quoteRaw, profileRaw, ratiosRaw, metricsRaw, incomeRaw, historyRaw] = await Promise.all([
+    const [quoteRaw, profileRaw, ratiosRaw, metricsRaw, incomeRaw, historyRaw, balanceRaw] = await Promise.all([
       fmp(`/quote?symbol=${encodeURIComponent(ticker)}`, apiKey),
-      fmp(`/profile?symbol=${encodeURIComponent(ticker)}`, apiKey),
-      fmp(`/ratios-ttm?symbol=${encodeURIComponent(ticker)}`, apiKey),
-      fmp(`/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}`, apiKey),
-      fmp(`/income-statement?symbol=${encodeURIComponent(ticker)}&period=quarter&limit=4`, apiKey),
-      fmp(`/historical-price-eod/full?symbol=${encodeURIComponent(ticker)}`, apiKey)
+      optionalFmp(`/profile?symbol=${encodeURIComponent(ticker)}`, apiKey, []),
+      optionalFmp(`/ratios-ttm?symbol=${encodeURIComponent(ticker)}`, apiKey, []),
+      optionalFmp(`/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}`, apiKey, []),
+      optionalFmp(`/income-statement?symbol=${encodeURIComponent(ticker)}&period=quarter&limit=4`, apiKey, []),
+      fmp(`/historical-price-eod/full?symbol=${encodeURIComponent(ticker)}`, apiKey),
+      optionalFmp(`/balance-sheet-statement?symbol=${encodeURIComponent(ticker)}&period=quarter&limit=1`, apiKey, [])
     ]);
 
     const quote = first(quoteRaw) || {};
@@ -107,6 +141,26 @@ exports.handler = async (event) => {
     const metrics = first(metricsRaw) || {};
     const history = normalizeHistory(historyRaw);
     const quarters = normalizeQuarters(incomeRaw);
+    const balance = first(balanceRaw) || {};
+    const ttmRevenue = sumNumbers(quarters, "revenue");
+    const ttmNetIncome = sumNumbers(quarters, "netIncome");
+    const ttmEps = sumNumbers(quarters, "eps");
+    const ttmGrossProfit = sumNumbers(quarters, "grossProfit");
+    const ttmOperatingIncome = sumNumbers(quarters, "operatingIncome");
+    const averageGrossMargin = averageNumbers(quarters, "grossProfitRatio");
+    const averageOperatingMargin = averageNumbers(quarters, "operatingIncomeRatio");
+    const latestPrice = toNumber(quote.price);
+    const previousClose = history.length > 1 ? history[history.length - 2].close : null;
+    const dailyPercent = toNumber(quote.changesPercentage) ?? (
+      ratio(toNumber(quote.change), previousClose) === null ? null : ratio(toNumber(quote.change), previousClose) * 100
+    );
+    const calculatedPe = latestPrice && ttmEps && ttmEps > 0 ? latestPrice / ttmEps : null;
+    const epsGrowth = quarters.length >= 2 ? growthPercent(quarters[0].eps, quarters[quarters.length - 1].eps) : null;
+    const calculatedPeg = calculatedPe && epsGrowth && epsGrowth > 0 ? calculatedPe / epsGrowth : null;
+    const calculatedRoe = ratio(ttmNetIncome, toNumber(balance.totalStockholdersEquity));
+    const calculatedDebtEquity = ratio(toNumber(balance.totalDebt), toNumber(balance.totalStockholdersEquity));
+    const calculatedGrossMargin = ratio(ttmGrossProfit, ttmRevenue) ?? averageGrossMargin;
+    const calculatedOperatingMargin = ratio(ttmOperatingIncome, ttmRevenue) ?? averageOperatingMargin;
 
     return response(200, {
       provider: "Financial Modeling Prep",
@@ -116,16 +170,16 @@ exports.handler = async (event) => {
       currency: profile.currency || quote.currency || "USD",
       timestamp: new Date().toISOString(),
       quote: {
-        price: toNumber(quote.price),
+        price: latestPrice,
         change: toNumber(quote.change),
-        changesPercentage: toNumber(quote.changesPercentage),
+        changesPercentage: dailyPercent,
         dayLow: toNumber(quote.dayLow),
         dayHigh: toNumber(quote.dayHigh),
         yearLow: toNumber(quote.yearLow),
         yearHigh: toNumber(quote.yearHigh),
         marketCap: toNumber(quote.marketCap),
-        pe: toNumber(quote.pe),
-        eps: toNumber(quote.eps),
+        pe: toNumber(quote.pe) ?? calculatedPe,
+        eps: toNumber(quote.eps) ?? ttmEps,
         sharesOutstanding: toNumber(quote.sharesOutstanding),
         volume: toNumber(quote.volume)
       },
@@ -133,17 +187,17 @@ exports.handler = async (event) => {
         sector: profile.sector || "Not available",
         industry: profile.industry || "Not available",
         beta: toNumber(profile.beta),
-        dividendYield: toNumber(profile.lastDiv) && toNumber(quote.price)
-          ? (toNumber(profile.lastDiv) / toNumber(quote.price)) * 100
-          : null,
+        dividendYield: toNumber(profile.lastDiv) && latestPrice ? (toNumber(profile.lastDiv) / latestPrice) * 100 : 0,
         website: profile.website || null
       },
       ratios: {
-        priceToSalesRatioTTM: toNumber(ratios.priceToSalesRatioTTM),
-        pegRatioTTM: toNumber(ratios.pegRatioTTM),
-        operatingProfitMarginTTM: toNumber(ratios.operatingProfitMarginTTM),
-        returnOnEquityTTM: toNumber(ratios.returnOnEquityTTM),
-        debtEquityRatioTTM: toNumber(ratios.debtEquityRatioTTM)
+        priceToSalesRatioTTM: toNumber(ratios.priceToSalesRatioTTM) ?? ratio(toNumber(quote.marketCap), ttmRevenue),
+        pegRatioTTM: toNumber(ratios.pegRatioTTM) ?? calculatedPeg,
+        grossProfitMarginTTM: calculatedGrossMargin,
+        operatingProfitMarginTTM: toNumber(ratios.operatingProfitMarginTTM) ?? calculatedOperatingMargin,
+        netProfitMarginTTM: ratio(ttmNetIncome, ttmRevenue),
+        returnOnEquityTTM: toNumber(ratios.returnOnEquityTTM) ?? calculatedRoe,
+        debtEquityRatioTTM: toNumber(ratios.debtEquityRatioTTM) ?? calculatedDebtEquity
       },
       metrics: {
         revenuePerShareTTM: toNumber(metrics.revenuePerShareTTM),
